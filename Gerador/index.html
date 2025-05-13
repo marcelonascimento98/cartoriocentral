@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Retire sua Senha - Cartório</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding-top: 50px;
+      background-color: #f5f5f5;
+      position: relative;
+    }
+
+    .logo {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      height: 80px;
+    }
+
+    h1 {
+      margin-bottom: 80px;
+    }
+
+    .btn {
+      display: block;
+      font-size: 20px;
+      padding: 20px 40px;
+      margin: 20px auto;
+      border-radius: 10px;
+      border: none;
+      background-color: #0066cc;
+      color: white;
+      width: 500px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    .btn:hover {
+      background-color: #004a99;
+    }
+
+    #mensagem {
+      font-size: 24px;
+      margin-top: 30px;
+      color: #006600;
+      font-weight: bold;
+    }
+
+    #invisivel-reset {
+      position: fixed;
+      bottom: 0;
+      right: 0;
+      width: 50px;
+      height: 50px;
+      z-index: 9999;
+      opacity: 0;
+      background: transparent;
+      border: none;
+    }
+  </style>
+
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+</head>
+<body>
+
+  <img src="img/logo.png" alt="Logo do Cartório" class="logo" />
+
+  <h1>ESCOLHA SEU SERVIÇO </h1>
+
+  <button class="btn" onclick="enviarClique('A')">A - Expedir, Retirar ou Autenticar Documentos</button>
+  <button class="btn" onclick="enviarClique('B')">B - Abrir e Reconhecer Firma</button>
+  <button class="btn" onclick="enviarClique('C')">C - Outros</button>
+  <button class="btn" onclick="enviarClique('D')">D - Prioridade</button>
+
+  <div id="mensagem"></div>
+  <div id="invisivel-reset"></div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyDjqEFCegRMG9iLsb8TX4LRkUwbVTUPNII",
+      authDomain: "sistemasenhas-99019.firebaseapp.com",
+      databaseURL: "https://sistemasenhas-99019-default-rtdb.firebaseio.com",
+      projectId: "sistemasenhas-99019",
+      storageBucket: "sistemasenhas-99019.appspot.com",
+      messagingSenderId: "618696179425",
+      appId: "1:618696179425:web:3924c295673644c8bf81a0",
+      measurementId: "G-T5507EL46W"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    const endpoint = "https://script.google.com/macros/s/AKfycbyfVr1BxAIGQDpuWwwXZXCiWN6avVAobqgGgDfyV2k9ZeSc0khNhN03MG1GhZhdXA6w-A/exec";
+
+    const contador = JSON.parse(localStorage.getItem('contadorSenhas')) || {
+      A: 0,
+      B: 0,
+      C: 0,
+      D: 0
+    };
+
+    function enviarClique(balcao) {
+      contador[balcao]++;
+      localStorage.setItem('contadorSenhas', JSON.stringify(contador));
+
+      const senhaLocal = balcao + String(contador[balcao]).padStart(4, "0");
+
+      document.getElementById("mensagem").textContent = `Bem-vindo(a)! Retire sua Senha : ${senhaLocal}`;
+
+      fetch(endpoint, {
+        method: "POST",
+        mode: "no-cors",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          balcao: balcao,
+          senha: senhaLocal
+        })
+      });
+
+      imprimirSenha(senhaLocal);
+
+      const mesa = {
+        A: "MESA 1",
+        B: "MESA 2",
+        C: "MESA 3",
+        D: "MESA 4"
+      }[balcao];
+
+      const servico = {
+        A: "Expedir, Retirar ou Autenticar Documentos",
+        B: "Abrir e Reconhecer Firma",
+        C: "Outros",
+        D: "Prioridade"
+      }[balcao];
+
+      registrarSenhaFirebase(senhaLocal, mesa, servico);
+    }
+
+    function imprimirSenha(senha) {
+      const letra = senha.charAt(0);
+      const servico = {
+        A: "Expedir, Retirar ou Autenticar Documentos",
+        B: "Abrir e Reconhecer Firma",
+        C: "Outros",
+        D: "Prioridade"
+      }[letra] || "Atendimento";
+
+      const agora = new Date().toLocaleString("pt-BR");
+
+      const novaJanela = window.open('', '_blank', 'width=300,height=400');
+      novaJanela.document.write(`
+        <html>
+          <head>
+            <style>
+              body {
+                font-family: monospace;
+                font-size: 18px;
+                padding: 20px;
+                text-align: center;
+              }
+              img {
+                max-width: 80px;
+                margin-bottom: 10px;
+              }
+              .senha {
+                font-size: 36px;
+                font-weight: bold;
+                margin: 20px 0 10px;
+              }
+              .servico {
+                font-size: 16px;
+                margin-bottom: 15px;
+              }
+              .linha {
+                margin: 10px 0;
+                border-top: 1px dashed #000;
+              }
+            </style>
+          </head>
+          <body>
+            <img src="img/logo.png" alt="Logo" />
+            <div><strong>CARTÓRIO DE BERTIOGA</strong></div>
+            <div class="linha"></div>
+            <div class="senha">Senha: ${senha}</div>
+            <div class="servico">${servico}</div>
+            <div>${agora}</div>
+            <div class="linha"></div>
+            <div>Aguarde ser chamado</div>
+
+            <script>
+              window.onload = function() {
+                window.print();
+                setTimeout(() => window.close(), 200);
+              }
+            <\/script>
+          </body>
+        </html>
+      `);
+      novaJanela.document.close();
+    }
+
+    // Reset invisível ao pressionar canto inferior direito por 4 segundos
+    let holdTimer;
+    const areaReset = document.getElementById("invisivel-reset");
+
+    areaReset.addEventListener("mousedown", () => {
+      holdTimer = setTimeout(() => {
+        localStorage.removeItem('contadorSenhas');
+        alert("Senhas reiniciadas com sucesso!");
+        location.reload();
+      }, 4000);
+    });
+
+    areaReset.addEventListener("mouseup", () => clearTimeout(holdTimer));
+    areaReset.addEventListener("mouseleave", () => clearTimeout(holdTimer));
+
+    function registrarSenhaFirebase(senha, mesa, servico) {
+      const horario = new Date().toISOString();
+      const novaRef = db.ref("senhas").push();
+      novaRef.set({
+        servico: servico,
+        senha: senha,
+        mesa: mesa,
+        horario: horario,
+        chamada: "",
+        finalizada: ""
+      });
+    }
+  </script>
+</body>
+</html>

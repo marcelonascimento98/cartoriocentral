@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Relatório de Senhas - Cartório</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background-color: #f7f7f7;
+    }
+
+    h1 {
+      text-align: center;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      background-color: #fff;
+    }
+
+    th, td {
+      padding: 10px;
+      border: 1px solid #ccc;
+      text-align: left;
+    }
+
+    th {
+      background-color: #003a5f;
+      color: white;
+    }
+
+    .botoes {
+      text-align: center;
+      margin-top: 20px;
+    }
+
+    button {
+      padding: 12px 24px;
+      background-color: #0066cc;
+      color: white;
+      border: none;
+      font-size: 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      margin: 10px;
+    }
+
+    button:hover {
+      background-color: #004a99;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>📊 Relatório de Senhas</h1>
+
+  <div class="botoes">
+    <button onclick="exportarExcel()">Exportar para Excel</button>
+    <button onclick="excluirRelatorio()">🗑️ Excluir Relatório</button>
+    <button onclick="finalizarAtendimentos()">✅ Finalizar Atendimentos Abertos</button>
+
+  </div>
+
+  <table id="tabelaRelatorio">
+    <thead>
+      <tr>
+        <th>Senha</th>
+        <th>Serviço</th>
+        <th>Horário</th>
+        <th>Chamada</th>
+        <th>Finalizada</th>
+        <th>Duração</th>
+      </tr>
+    </thead>
+    <tbody id="corpoTabela"></tbody>
+  </table>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyDjqEFCegRMG9iLsb8TX4LRkUwbVTUPNII",
+      authDomain: "sistemasenhas-99019.firebaseapp.com",
+      databaseURL: "https://sistemasenhas-99019-default-rtdb.firebaseio.com",
+      projectId: "sistemasenhas-99019",
+      storageBucket: "sistemasenhas-99019.appspot.com",
+      messagingSenderId: "618696179425",
+      appId: "1:618696179425:web:3924c295673644c8bf81a0"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    let dadosRelatorio = [];
+
+   function carregarDados() {
+  db.ref("senhas").once("value", snapshot => {
+    const corpo = document.getElementById("corpoTabela");
+    corpo.innerHTML = "";
+    dadosRelatorio = [];
+
+    snapshot.forEach(child => {
+      const item = child.val();
+      const linha = document.createElement("tr");
+
+      const senha = item.senha || "";
+      const servico = item.servico || "";
+      const horario = formatar(item.horario);
+      const chamada = formatar(item.chamada);
+      const finalizada = formatar(item.finalizada);
+      const duracao = calcularDuracao(item.horario, item.finalizada);
+
+      linha.innerHTML = `
+        <td>${senha}</td>
+        <td>${servico}</td>
+        <td>${horario}</td>
+        <td>${chamada}</td>
+        <td>${finalizada}</td>
+        <td>${duracao}</td>
+      `;
+
+      corpo.appendChild(linha);
+
+      dadosRelatorio.push({
+        Senha: senha,
+        Serviço: servico,
+        Horário: horario,
+        Chamada: chamada,
+        Finalizada: finalizada,
+        Duração: duracao
+      });
+    });
+  });
+}
+
+function calcularDuracao(inicio, fim) {
+  if (!inicio || !fim) return "";
+  const start = new Date(inicio);
+  const end = new Date(fim);
+  const diffMs = end - start;
+
+  const horas = Math.floor(diffMs / (1000 * 60 * 60));
+  const minutos = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+  const segundos = Math.floor((diffMs % (1000 * 60)) / 1000);
+
+  return `${String(horas).padStart(2, "0")}:${String(minutos).padStart(2, "0")}:${String(segundos).padStart(2, "0")}`;
+}
+
+
+
+    function formatar(dataIso) {
+      if (!dataIso) return "";
+      const d = new Date(dataIso);
+      return d.toLocaleString("pt-BR");
+    }
+
+    function exportarExcel() {
+      const worksheet = XLSX.utils.json_to_sheet(dadosRelatorio);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Relatorio_Senhas");
+      XLSX.writeFile(workbook, "relatorio_senhas.xlsx");
+    }
+
+    function excluirRelatorio() {
+      const confirmacao = confirm("❗ Tem certeza que deseja excluir todo o relatório de senhas? Essa ação não poderá ser desfeita.");
+      if (confirmacao) {
+        db.ref("senhas").remove().then(() => {
+          alert("✅ Relatório excluído com sucesso.");
+          carregarDados();
+        }).catch(error => {
+          alert("Erro ao excluir: " + error.message);
+        }
+        );
+      }
+    }
+    function finalizarAtendimentos() {
+  const agora = new Date().toISOString();
+
+  db.ref("senhas").once("value", snapshot => {
+    const updates = {};
+    snapshot.forEach(child => {
+      const val = child.val();
+      if (val.chamada && !val.finalizada) {
+        updates[`${child.key}/finalizada`] = agora;
+      }
+    });
+
+    if (Object.keys(updates).length === 0) {
+      alert("🔍 Nenhum atendimento aberto para finalizar.");
+      return;
+    }
+
+    db.ref("senhas").update(updates).then(() => {
+      alert("✅ Todos os atendimentos abertos foram finalizados.");
+      carregarDados();
+    }).catch(error => {
+      alert("Erro ao finalizar atendimentos: " + error.message);
+    });
+  });
+}
+
+    window.onload = carregarDados;
+  </script>
+
+</body>
+</html>

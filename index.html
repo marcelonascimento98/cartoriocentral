@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>CENTRAL DE GERENCIAMENTO</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f4f4;
+      margin: 0;
+      padding: 0;
+      text-align: center;
+    }
+
+    header {
+      background-color: #003a5f;
+      color: white;
+      padding: 30px 20px;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 28px;
+    }
+
+    .container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 30px;
+      padding: 40px;
+      max-width: 1200px;
+      margin: auto;
+    }
+
+    .card {
+      background: white;
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    .card h2 {
+      font-size: 22px;
+      margin-bottom: 10px;
+      color: #003a5f;
+    }
+
+    .card p {
+      font-size: 14px;
+      margin-bottom: 20px;
+    }
+
+    .card a {
+      display: inline-block;
+      background: #003a5f;
+      color: white;
+      padding: 10px 25px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: bold;
+    }
+
+    .card a:hover {
+      background: #005a8f;
+    }
+
+    .row-mesas {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      padding: 20px;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+    }
+
+    .card.mesa {
+      width: 200px;
+      padding: 20px;
+      flex-shrink: 0;
+    }
+
+    .card.mesa h2 {
+      font-size: 16px;
+    }
+
+    .card.mesa p {
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>CENTRAL DE GERENCIAMENTO</h1>
+  </header>
+
+  <div class="container">
+    <div class="card">
+      <h2>Gerador de Senhas</h2>
+      <p>Utilize esta página nos tablets para os clientes retirarem suas senhas.</p>
+      <a href="./Gerador/index.html" target="_blank">Abrir Gerador</a>
+    </div>
+
+    <div class="card">
+      <h2>Painel Principal</h2>
+      <p>Exibição das senhas sendo chamadas em tempo real com som e histórico.</p>
+      <a href="./Painel Principal/index.html" target="_blank">Abrir Painel</a>
+    </div>
+
+    <div class="card">
+      <h2>Relatórios</h2>
+      <p>Exportar todas as senhas chamadas, horários e serviços para Excel.</p>
+      <a href="./Relatório/relatorio.html" target="_blank">Abrir Relatório</a>
+    </div>
+  </div>
+
+  <div class="row-mesas">
+    <div class="card mesa">
+      <h2>Chamador - Mesa 1</h2>
+      <p>Mesa 1 chama próxima senha.</p>
+      <a href="./Chamadores/mesa.html?mesa=MESA1" target="_blank">Abrir</a>
+    </div>
+
+    <div class="card mesa">
+      <h2>Chamador - Mesa 2</h2>
+      <p>Mesa 2 chama próxima senha.</p>
+      <a href="./Chamadores/mesa.html?mesa=MESA2" target="_blank">Abrir</a>
+    </div>
+
+    <div class="card mesa">
+      <h2>Chamador - Mesa 3</h2>
+      <p>Mesa 3 chama próxima senha.</p>
+      <a href="./Chamadores/mesa.html?mesa=MESA3" target="_blank">Abrir</a>
+    </div>
+
+    <div class="card mesa">
+      <h2>Chamador - Mesa 4</h2>
+      <p>Mesa 4 chama próxima senha.</p>
+      <a href="./Chamadores/mesa.html?mesa=MESA4" target="_blank">Abrir</a>
+    </div>
+  </div>
+
+</body>
+</html>

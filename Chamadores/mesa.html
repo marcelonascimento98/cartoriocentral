@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Chamador de Senhas</title>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 50px;
+    }
+    h1 {
+      margin-bottom: 40px;
+    }
+    .btn {
+      font-size: 24px;
+      margin: 10px;
+      padding: 15px 40px;
+      background-color: #003a5f;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+    .btn:hover {
+      background-color: #005a8f;
+    }
+    #info {
+      margin-top: 30px;
+      font-size: 18px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Chamador de Senhas</h1>
+
+  <button class="btn" onclick="chamarProxima('A')">Chamar A</button>
+  <button class="btn" onclick="chamarProxima('B')">Chamar B</button>
+  <button class="btn" onclick="chamarProxima('C')">Chamar C</button>
+  <button class="btn" onclick="chamarProxima('D')">Chamar D</button>
+  <br><br>
+  <button class="btn" onclick="voltarSenha()">Voltar Senha Anterior</button>
+  <button class="btn" onclick="pesquisarSenha()">Pesquisar Senha</button>
+  <button class="btn" onclick="tocarAudio()">Chamar Atenção</button>
+
+  <div id="info">Nenhuma senha chamada ainda.</div>
+
+  <audio id="audioChamada" src="../audio/chamada.wav"></audio>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyDjqEFCegRMG9iLsb8TX4LRkUwbVTUPNII",
+      authDomain: "sistemasenhas-99019.firebaseapp.com",
+      databaseURL: "https://sistemasenhas-99019-default-rtdb.firebaseio.com",
+      projectId: "sistemasenhas-99019",
+      storageBucket: "sistemasenhas-99019.appspot.com",
+      messagingSenderId: "618696179425",
+      appId: "1:618696179425:web:3924c295673644c8bf81a0"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const mesa = urlParams.get("mesa") || "MESA";
+
+    let ultimaSenhaChamada = null;
+    const audio = document.getElementById("audioChamada");
+
+window.tocarAudio = function () {
+  audio.pause();
+  audio.currentTime = 0;
+
+  audio.play().then(() => {
+    // tudo certo
+  }).catch((e) => {
+    console.warn("⚠️ Erro ao reproduzir áudio:", e.message);
+  });
+};
+
+    function desbloquearAudio() {
+      audio.play().then(() => {
+        audio.pause();
+        document.removeEventListener("click", desbloquearAudio);
+      }).catch(() => {});
+    }
+    document.addEventListener("click", desbloquearAudio, { once: true });
+
+    function chamarProxima(letra) {
+      db.ref("senhas")
+        .orderByChild("senha")
+        .startAt(letra)
+        .endAt(letra + "\uf8ff")
+        .once("value", snapshot => {
+          const senhas = [];
+          snapshot.forEach(child => {
+            const dado = child.val();
+            if (!dado.chamada) {
+              senhas.push({ id: child.key, ...dado });
+            }
+          });
+
+          if (senhas.length) {
+            senhas.sort((a, b) => new Date(a.horario) - new Date(b.horario));
+            const proxima = senhas[0];
+            const agora = new Date().toISOString();
+
+            snapshot.forEach(child => {
+              const d = child.val();
+              if (d.chamada && !d.finalizada && d.senha.startsWith(letra)) {
+                db.ref("senhas/" + child.key + "/finalizada").set(agora);
+              }
+            });
+
+            db.ref("senhas/" + proxima.id).update({ chamada: agora, mesa });
+            ultimaSenhaChamada = proxima.senha;
+            document.getElementById("info").textContent = `Chamando senha ${proxima.senha} para ${mesa}`;
+            tocarAudio();
+          } else {
+            alert("Nenhuma senha disponível do tipo " + letra);
+          }
+        });
+    }
+
+    let historicoChamadas = [];
+
+function chamarProxima(letra) {
+  db.ref("senhas")
+    .orderByChild("senha")
+    .startAt(letra)
+    .endAt(letra + "\uf8ff")
+    .once("value", snapshot => {
+      const senhas = [];
+      snapshot.forEach(child => {
+        const dado = child.val();
+        if (!dado.chamada) {
+          senhas.push({ id: child.key, ...dado });
+        }
+      });
+
+      if (senhas.length) {
+        senhas.sort((a, b) => new Date(a.horario) - new Date(b.horario));
+        const proxima = senhas[0];
+        const agora = new Date().toISOString();
+
+        snapshot.forEach(child => {
+          const d = child.val();
+          if (d.chamada && !d.finalizada && d.senha.startsWith(letra)) {
+            db.ref("senhas/" + child.key + "/finalizada").set(agora);
+          }
+        });
+
+        db.ref("senhas/" + proxima.id).update({ chamada: agora, mesa });
+
+        // Atualiza histórico corretamente
+        historicoChamadas.push(proxima.senha);
+        if (historicoChamadas.length > 10) historicoChamadas.shift(); // mantém últimos 10 no máximo
+
+        document.getElementById("info").textContent = `Chamando senha ${proxima.senha} para ${mesa}`;
+        tocarAudio();
+      } else {
+        alert("Nenhuma senha disponível do tipo " + letra);
+      }
+    });
+}
+
+function voltarSenha() {
+  if (historicoChamadas.length < 2) {
+    alert("Não há senha anterior para voltar.");
+    return;
+  }
+
+  const senhaAnterior = historicoChamadas[historicoChamadas.length - 2];
+
+  db.ref("senhas")
+    .orderByChild("senha")
+    .equalTo(senhaAnterior)
+    .once("value", snapshot => {
+      if (snapshot.exists()) {
+        const id = Object.keys(snapshot.val())[0];
+        db.ref("senhas/" + id).update({ chamada: new Date().toISOString(), mesa });
+        document.getElementById("info").textContent = `Rechamando senha ${senhaAnterior} para ${mesa}`;
+        tocarAudio();
+      } else {
+        alert("Senha anterior não encontrada no sistema.");
+      }
+    });
+}
+
+
+    function pesquisarSenha() {
+      const senha = prompt("Digite a senha que deseja voltar (ex: A0001):");
+      if (!senha) return;
+
+      db.ref("senhas")
+        .orderByChild("senha")
+        .equalTo(senha.toUpperCase())
+        .once("value", snapshot => {
+          if (snapshot.exists()) {
+            const id = Object.keys(snapshot.val())[0];
+            db.ref("senhas/" + id).update({ chamada: new Date().toISOString(), mesa });
+            document.getElementById("info").textContent = `Rechamando senha ${senha.toUpperCase()} para ${mesa}`;
+            tocarAudio();
+          } else {
+            alert("Senha não encontrada no sistema.");
+          }
+        });
+    }
+
+    window.addEventListener("beforeunload", () => {
+      db.ref("senhas").once("value", snapshot => {
+        snapshot.forEach(child => {
+          const data = child.val();
+          if (data.chamada && !data.finalizada) {
+            db.ref(`senhas/${child.key}/finalizada`).set(new Date().toISOString());
+          }
+        });
+      });
+    });
+  </script>
+</body>
+</html>
