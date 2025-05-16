@@ -64,7 +64,6 @@
     <button onclick="exportarExcel()">Exportar para Excel</button>
     <button onclick="excluirRelatorio()">🗑️ Excluir Relatório</button>
     <button onclick="finalizarAtendimentos()">✅ Finalizar Atendimentos Abertos</button>
-
   </div>
 
   <table id="tabelaRelatorio">
@@ -76,6 +75,7 @@
         <th>Chamada</th>
         <th>Finalizada</th>
         <th>Duração</th>
+        <th>Mesa</th> <!-- NOVA COLUNA -->
       </tr>
     </thead>
     <tbody id="corpoTabela"></tbody>
@@ -96,60 +96,61 @@
     const db = firebase.database();
     let dadosRelatorio = [];
 
-   function carregarDados() {
-  db.ref("senhas").once("value", snapshot => {
-    const corpo = document.getElementById("corpoTabela");
-    corpo.innerHTML = "";
-    dadosRelatorio = [];
+    function carregarDados() {
+      db.ref("senhas").once("value", snapshot => {
+        const corpo = document.getElementById("corpoTabela");
+        corpo.innerHTML = "";
+        dadosRelatorio = [];
 
-    snapshot.forEach(child => {
-      const item = child.val();
-      const linha = document.createElement("tr");
+        snapshot.forEach(child => {
+          const item = child.val();
+          const linha = document.createElement("tr");
 
-      const senha = item.senha || "";
-      const servico = item.servico || "";
-      const horario = formatar(item.horario);
-      const chamada = formatar(item.chamada);
-      const finalizada = formatar(item.finalizada);
-      const duracao = calcularDuracao(item.horario, item.finalizada);
+          const senha = item.senha || "";
+          const servico = item.servico || "";
+          const horario = formatar(item.horario);
+          const chamada = formatar(item.chamada);
+          const finalizada = formatar(item.finalizada);
+          const duracao = calcularDuracao(item.horario, item.finalizada);
+          const mesa = item.mesa || "";
 
-      linha.innerHTML = `
-        <td>${senha}</td>
-        <td>${servico}</td>
-        <td>${horario}</td>
-        <td>${chamada}</td>
-        <td>${finalizada}</td>
-        <td>${duracao}</td>
-      `;
+          linha.innerHTML = `
+            <td>${senha}</td>
+            <td>${servico}</td>
+            <td>${horario}</td>
+            <td>${chamada}</td>
+            <td>${finalizada}</td>
+            <td>${duracao}</td>
+            <td>${mesa}</td> <!-- NOVA COLUNA -->
+          `;
 
-      corpo.appendChild(linha);
+          corpo.appendChild(linha);
 
-      dadosRelatorio.push({
-        Senha: senha,
-        Serviço: servico,
-        Horário: horario,
-        Chamada: chamada,
-        Finalizada: finalizada,
-        Duração: duracao
+          dadosRelatorio.push({
+            Senha: senha,
+            Serviço: servico,
+            Horário: horario,
+            Chamada: chamada,
+            Finalizada: finalizada,
+            Duração: duracao,
+            Mesa: mesa // NOVO CAMPO
+          });
+        });
       });
-    });
-  });
-}
+    }
 
-function calcularDuracao(inicio, fim) {
-  if (!inicio || !fim) return "";
-  const start = new Date(inicio);
-  const end = new Date(fim);
-  const diffMs = end - start;
+    function calcularDuracao(inicio, fim) {
+      if (!inicio || !fim) return "";
+      const start = new Date(inicio);
+      const end = new Date(fim);
+      const diffMs = end - start;
 
-  const horas = Math.floor(diffMs / (1000 * 60 * 60));
-  const minutos = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-  const segundos = Math.floor((diffMs % (1000 * 60)) / 1000);
+      const horas = Math.floor(diffMs / (1000 * 60 * 60));
+      const minutos = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+      const segundos = Math.floor((diffMs % (1000 * 60)) / 1000);
 
-  return `${String(horas).padStart(2, "0")}:${String(minutos).padStart(2, "0")}:${String(segundos).padStart(2, "0")}`;
-}
-
-
+      return `${String(horas).padStart(2, "0")}:${String(minutos).padStart(2, "0")}:${String(segundos).padStart(2, "0")}`;
+    }
 
     function formatar(dataIso) {
       if (!dataIso) return "";
@@ -172,35 +173,35 @@ function calcularDuracao(inicio, fim) {
           carregarDados();
         }).catch(error => {
           alert("Erro ao excluir: " + error.message);
-        }
-        );
+        });
       }
     }
+
     function finalizarAtendimentos() {
-  const agora = new Date().toISOString();
+      const agora = new Date().toISOString();
 
-  db.ref("senhas").once("value", snapshot => {
-    const updates = {};
-    snapshot.forEach(child => {
-      const val = child.val();
-      if (val.chamada && !val.finalizada) {
-        updates[`${child.key}/finalizada`] = agora;
-      }
-    });
+      db.ref("senhas").once("value", snapshot => {
+        const updates = {};
+        snapshot.forEach(child => {
+          const val = child.val();
+          if (val.chamada && !val.finalizada) {
+            updates[`${child.key}/finalizada`] = agora;
+          }
+        });
 
-    if (Object.keys(updates).length === 0) {
-      alert("🔍 Nenhum atendimento aberto para finalizar.");
-      return;
+        if (Object.keys(updates).length === 0) {
+          alert("🔍 Nenhum atendimento aberto para finalizar.");
+          return;
+        }
+
+        db.ref("senhas").update(updates).then(() => {
+          alert("✅ Todos os atendimentos abertos foram finalizados.");
+          carregarDados();
+        }).catch(error => {
+          alert("Erro ao finalizar atendimentos: " + error.message);
+        });
+      });
     }
-
-    db.ref("senhas").update(updates).then(() => {
-      alert("✅ Todos os atendimentos abertos foram finalizados.");
-      carregarDados();
-    }).catch(error => {
-      alert("Erro ao finalizar atendimentos: " + error.message);
-    });
-  });
-}
 
     window.onload = carregarDados;
   </script>
